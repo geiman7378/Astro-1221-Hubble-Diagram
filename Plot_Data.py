@@ -1,47 +1,22 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import re
+import os
+from get_data import SNData, TEX_FILE, TEX_URL
 
-# --- 1. Parse the .tex file ---
-data = []
-with open("SCPUnion2.1_AllSNe.tex", "r") as f:
-    for line in f:
-        line = line.strip()
-        if not line or line.startswith("%"):
-            continue
+if not os.path.exists(TEX_FILE):
+  print(f"{TEX_FILE} not found.")
+  print(f"Please download it manually from: {TEX_URL}")
+  print("and place it in the same folder as this script.")
+  raise SystemExit(1)
 
-        tokens = re.findall(r'-?\d+\.\d+(?:\(\d+\.?\d*\))?', line)
-        if len(tokens) < 6:
-            continue
+# --- 1. Load data (parsed once in get_data.py) ---
+sn = SNData(TEX_FILE)
+z = sn["z"]
+mu = sn["mu"]
+dmu = sn["mu_err"]
 
-        def parse_val_err(token):
-            m = re.match(r'(-?\d+\.\d+)(?:\((\d+\.?\d*)\))?', token)
-            if not m:
-                return None, None
-            val = float(m.group(1))
-            err = None
-            if m.group(2):
-                raw_err = m.group(2)
-                val_decimals = len(m.group(1).split('.')[1]) if '.' in m.group(1) else 0
-                if "." in raw_err:
-                    err = float(raw_err)
-                else:
-                    err = float(raw_err) * 10**(-val_decimals)
-            return val, err
-
-        try:
-            z            = float(tokens[0])
-            #_m,  _dm     = parse_val_err(tokens[1]) these try things aren't needed for this code to work rn
-            #_x1, _dx1    = parse_val_err(tokens[2]) if you need it then uncomment them.
-            #_c,  _dc     = parse_val_err(tokens[3])
-            mu,  dmu     = parse_val_err(tokens[4])
-            if z > 0 and mu is not None and dmu is not None and dmu > 0:
-                data.append((z, mu, dmu))
-        except (ValueError, IndexError):
-            continue
-
-data = np.array(data)
-z, mu, dmu = data[:, 0], data[:, 1], data[:, 2]
+valid = np.isfinite(z) & np.isfinite(mu) & np.isfinite(dmu) & (z > 0) & (dmu > 0)
+z, mu, dmu = z[valid], mu[valid], dmu[valid]
 
 # --- 2. Filter to small redshifts ---
 mask = z < 0.1

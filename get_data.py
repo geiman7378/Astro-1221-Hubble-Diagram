@@ -5,12 +5,6 @@ import numpy as np
 TEX_FILE = 'SCPUnion2.1_AllSNe.tex'
 TEX_URL = 'https://supernova.lbl.gov/Union/figures/SCPUnion2.1_AllSNe.tex'
 
-if not os.path.exists(TEX_FILE):
-    print(f'{TEX_FILE} not found.')
-    print(f'Please download it manually from: {TEX_URL}')
-    print(f'and place it in the same folder as this script.')
-    exit()
-
 # Creates an array with each row being a supernova, and each column being a different property (all are unitless).
 class SNData:
     def __init__(self, filepath):
@@ -88,8 +82,9 @@ class SNData:
 
 data = SNData(TEX_FILE)
 
-print(data[0])
-print(f'For supernova {data['SN'][0]}:')
-print(f'   The redshift is {data['z'][0]}')
-print(f'   The mu value is {data['mu'][0]}')
-print(f'   The error in mu is {data['mu_err'][0]}')
+#print(data[0])
+#print(f'For supernova {data['SN'][0]}:')
+#print(f'   The redshift is {data['z'][0]}')
+#print(f'   The mu value is {data['mu'][0]}')
+#print(f'   The error in mu is {data['mu_err'][0]}')
+#Commented these out because I don't think they're used for anything besides debugging.
