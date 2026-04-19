@@ -81,10 +81,3 @@ class SNData:
 
 
 data = SNData(TEX_FILE)
-
-#print(data[0])
-#print(f'For supernova {data['SN'][0]}:')
-#print(f'   The redshift is {data['z'][0]}')
-#print(f'   The mu value is {data['mu'][0]}')
-#print(f'   The error in mu is {data['mu_err'][0]}')
-#Commented these out because I don't think they're used for anything besides debugging.
