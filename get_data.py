@@ -79,5 +79,32 @@ class SNData:
     def __getitem__(self, col):
         return self.array[col]
 
+# Austin - added this here so that way Joseph and I don't have to manually format this data ourselves each time
+def load_sn_arrays(tex_file=TEX_FILE):
+    """
+    Return SN Ia arrays ready for fitting: finite z, mu, errors; z > 0.
+    Uncertainty is sqrt(mu_err^2 + sig_int^2) where intrinsic scatter is
+    available (Union2.1 provides both).
+    """
+    sn = SNData(tex_file)
+    z = sn["z"]
+    mu = sn["mu"]
+    mu_err = sn["mu_err"]
+    sig_int = sn["sig_int"]
+    valid = (
+        np.isfinite(z)
+        & np.isfinite(mu)
+        & np.isfinite(mu_err)
+        & (z > 0)
+        & (mu_err > 0)
+    )
+    z = z[valid]
+    mu = mu[valid]
+    mu_err = mu_err[valid]
+    sig_int = sig_int[valid]
+    extra = np.where(np.isfinite(sig_int), sig_int, 0.0)
+    sigma = np.sqrt(mu_err**2 + extra**2)
+    return z, mu, sigma
+
 
 data = SNData(TEX_FILE)

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-from get_data import SNData, TEX_FILE, TEX_URL
+from get_data import TEX_FILE, TEX_URL, load_sn_arrays
 
 
 class HubbleFitter:
@@ -13,11 +13,7 @@ class HubbleFitter:
             raise SystemExit(1)
 
         self.z_max = z_max
-        sn = SNData(tex_file)
-        z, mu, dmu = sn["z"], sn["mu"], sn["mu_err"]
-
-        valid = np.isfinite(z) & np.isfinite(mu) & np.isfinite(dmu) & (z > 0) & (dmu > 0)
-        self.z, self.mu, self.dmu = z[valid], mu[valid], dmu[valid]
+        self.z, self.mu, self.dmu = load_sn_arrays(tex_file)
 
         self.C_best = self.C_err = self.H0 = self.H0_err = None
         self.z_fit = self.mu_fit = self.dmu_fit = None
