@@ -1,4 +1,3 @@
-from Plot_Data import HubbleFitter
 import numpy as np
 import matplotlib.pyplot as plt
 from get_data import load_sn_arrays
@@ -7,12 +6,6 @@ from scipy.optimize import minimize
 
 # --- 1. Load SN Ia data (shared cleaning + err + sig_int in quadrature) ---
 z, mu, mu_err = load_sn_arrays()
-
-
-# --- 2. H0 from low-z fit in Plot_Data.py ---
-fitter = HubbleFitter().fit()
-final_h0 = fitter.H0
-print(f"Using fitted H0 = {final_h0:.3f} km/s/Mpc")
 
 
 def adv_h_calc(z_values, OmegaM, OmegaA, H0):
@@ -67,53 +60,48 @@ def mu_model(z_values, OmegaM, OmegaA, H0):
     return mu_pred
 
 
-def chi_squared_flat(params, z_values, mu_obs, mu_unc, H0_fixed):
+def chi_squared_flat(params, z_values, mu_obs, mu_unc):
     """
-    Flat LCDM with OmegaLambda = 1 - OmegaM. H0 is fixed from the low-z
-    linear Hubble law; a nuisance delta_mu absorbs the zero-point mismatch
-    between that anchor and the Union2.1 distance-modulus scale (same role
-    as marginalizing over absolute magnitude in the literature).
+    Flat LCDM with OmegaLambda = 1 - OmegaM.
+    Fit both OmegaM and H0 directly to the Union2.1 distance-modulus data.
     """
-    OmegaM, delta_mu = params
+    OmegaM, H0 = params
     OmegaA = 1.0 - OmegaM
-    if OmegaM < 0 or OmegaA < 0:
+    if OmegaM < 0 or OmegaA < 0 or H0 <= 0:
         return 1e30
-    mu_pred = mu_model(z_values, OmegaM, OmegaA, H0_fixed)
+    mu_pred = mu_model(z_values, OmegaM, OmegaA, H0)
     if mu_pred is None or not np.all(np.isfinite(mu_pred)):
         return 1e30
-    mu_pred = mu_pred + delta_mu
     residuals = (mu_obs - mu_pred) / mu_unc
     return np.sum(residuals ** 2)
 
 
-# --- 3. Fit matter density for z > 0.1 (flat universe, H0 fixed, offset floated) ---
-mask = z > 0.1
-z_fit = z[mask]
-mu_fit = mu[mask]
-mu_err_fit = mu_err[mask]
-print(f"Using {mask.sum()} supernovae with z > 0.1")
+# --- 3. Fit flat LCDM parameters using all valid redshifts from load_sn_arrays ---
+z_fit = z
+mu_fit = mu
+mu_err_fit = mu_err
+print(f"Using {len(z_fit)} supernovae across all valid z > 0 values")
 
 result = minimize(
     chi_squared_flat,
-    x0=np.array([0.30, 0.0]),
-    args=(z_fit, mu_fit, mu_err_fit, final_h0),
+    x0=np.array([0.30, 70.0]),
+    args=(z_fit, mu_fit, mu_err_fit),
     method="L-BFGS-B",
-    bounds=[(0.05, 0.95), (-2.0, 2.0)],
+    bounds=[(0.05, 0.95), (40.0, 100.0)],
 )
 
 if not result.success:
     raise RuntimeError(f"Parameter fit failed: {result.message}")
 
-best_OmegaM, best_delta_mu = float(result.x[0]), float(result.x[1])
+best_OmegaM, best_H0 = float(result.x[0]), float(result.x[1])
 best_OmegaA = 1.0 - best_OmegaM
-best_H0 = final_h0
 best_chi2 = result.fun
 ndof = len(z_fit) - 2
 reduced_chi2 = best_chi2 / ndof if ndof > 0 else np.nan
 
 print(
-    f"Best fit (flat LCDM, H0 fixed): OmegaM={best_OmegaM:.4f}, "
-    f"OmegaA={best_OmegaA:.4f}, H0={best_H0:.3f}, delta_mu={best_delta_mu:+.3f} mag"
+    f"Best fit (flat LCDM, free H0): OmegaM={best_OmegaM:.4f}, "
+    f"OmegaA={best_OmegaA:.4f}, H0={best_H0:.3f} km/s/Mpc"
 )
 print(f"chi^2 = {best_chi2:.2f}, chi^2_red = {reduced_chi2:.3f}")
 
@@ -123,11 +111,11 @@ Hz_at_z0 = adv_h_calc(0.0, best_OmegaM, best_OmegaA, best_H0)
 
 # --- 4. Plot H(z) using the best-fit cosmology ---
 fig, ax1 = plt.subplots(1, figsize=(8, 8))
-fig.suptitle("Best-Fit H(z) vs Redshift (z > 0.1)", fontsize=13)
+fig.suptitle("Best-Fit H(z) vs Redshift (all valid z)", fontsize=13)
 ax1.scatter(z_fit, Hz_array, s = 2, color="navy")
 ax1.annotate(f"H(z=0) = {Hz_at_z0:.2f} km/s/Mpc", xy=(0.05, 0.92),
              xycoords='axes fraction', fontsize=11, color='darkgreen')
-ax1.annotate(f"H0 (fixed, low-z fit) = {final_h0:.2f}", xy=(0.05, 0.86),
+ax1.annotate(f"H0 (fit from SN data) = {best_H0:.2f}", xy=(0.05, 0.86),
              xycoords='axes fraction', fontsize=10, color='darkred')
 ax1.annotate(f"chi^2_red = {reduced_chi2:.3f}", xy=(0.05, 0.75),
              xycoords='axes fraction', fontsize=10, color='black')
