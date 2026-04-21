@@ -44,8 +44,12 @@ class HubbleFitter:
                      ecolor='lightsteelblue', elinewidth=1, capsize=2, label='SN Ia data')
         ax1.plot(5 * np.log10(z_line), mu_line, 'r-', linewidth=2,
                  label=f'Fit: μ = 5log₁₀(z) + {self.C_best:.2f}')
-        ax1.set_ylabel("Distance Modulus μ")
-        ax1.set_xlabel("5 log₁₀(z)")
+        tick_positions = [-13, -12, -11, -10, -9, -8, -7, -6, -5]
+
+        ax1.set_xticks(tick_positions)
+        ax1.set_xticklabels([f"{10**(t/5):.3f}" for t in tick_positions])
+        ax1.set_ylabel(f"Distance Modulus" + r" $\mu = 5\log_{10}(z)$")
+        ax1.set_xlabel("Redshift (z)")
         ax1.legend()
         ax1.grid(True, alpha=0.3)
         ax1.annotate(f"H₀ = {self.H0:.1f} ± {self.H0_err:.2f} km/s/Mpc",
@@ -56,8 +60,10 @@ class HubbleFitter:
                      fmt='o', markersize=4, color='steelblue',
                      ecolor='lightsteelblue', elinewidth=1, capsize=2)
         ax2.axhline(0, color='red', linewidth=1.5)
+        ax2.set_xticks(tick_positions)
+        ax2.set_xticklabels([f"{10**(t/5):.3f}" for t in tick_positions])
         ax2.set_ylabel("Residuals (mag)")
-        ax2.set_xlabel("5 log₁₀(z)")
+        ax2.set_xlabel("Redshift (z)")
         ax2.grid(True, alpha=0.3)
 
         plt.tight_layout()
