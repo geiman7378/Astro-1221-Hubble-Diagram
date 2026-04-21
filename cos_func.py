@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from get_data import load_sn_arrays
 from scipy.optimize import minimize
-
+from scipy.constants import c
+from scipy.integrate import quad
 
 # --- 1. Load SN Ia data (shared cleaning + err + sig_int in quadrature) ---
 z, mu, mu_err = load_sn_arrays()
@@ -20,10 +21,10 @@ def adv_h_calc(z_values, OmegaM, OmegaA, H0):
     Hz = H0 * np.sqrt(inside)
     return Hz
 
+C_KM_S = c / 1e3
 
 def mu_model(z_values, OmegaM, OmegaA, H0):
     """Distance-modulus prediction from (OmegaM, OmegaA, H0)."""
-    c_light = 3e5  # km/s
     OmegaK = 1 - (OmegaM + OmegaA)
 
     z_sorted_idx = np.argsort(z_values)
@@ -50,7 +51,7 @@ def mu_model(z_values, OmegaM, OmegaA, H0):
         sqrt_abs_ok = np.sqrt(-OmegaK)
         d_m = np.sin(sqrt_abs_ok * chi_at_data) / sqrt_abs_ok
 
-    d_l_sorted = (c_light / H0) * (1 + z_sorted) * d_m
+    d_l_sorted = (C_KM_S / H0) * (1 + z_sorted) * d_m
     if np.any(d_l_sorted <= 0):
         return None
 
@@ -122,4 +123,85 @@ ax1.annotate(f"chi^2_red = {reduced_chi2:.3f}", xy=(0.05, 0.75),
 ax1.set_ylabel("H(z) (km/s/Mpc)")
 ax1.set_xlabel("Redshift")
 ax1.grid(True, alpha=0.3)
+plt.show()
+
+
+#5. Hubble Diagram: predicted distance modulus vs redshift
+#   E(z) = sqrt( Omega_m*(1+z)^3 + Omega_k*(1+z)^2 + Omega_Lambda )
+#   d_H  = c / H0
+#   d_C  = d_H * integral_0^z  dz' / E(z')
+#   d_L  = (1+z) * d_C
+#   mu   = 5 * log10(d_L [Mpc]) + 25
+
+def E_z(z_prime, OmegaM, OmegaA):
+    """Dimensionless Hubble rate E(z) = H(z)/H0; the integrand's denominator."""
+    OmegaK = 1.0 - OmegaM - OmegaA
+    return np.sqrt(OmegaM * (1.0 + z_prime)**3 + OmegaK * (1.0 + z_prime)**2 + OmegaA)
+
+
+def comoving_distance(z_obs, OmegaM, OmegaA, H0):
+    """Comoving distance d_C = (c/H0) * integral_0^z dz'/E(z'), in Mpc."""
+    d_H = C_KM_S / H0                                          # Hubble distance in Mpc
+    integrand = lambda z_prime: 1.0 / E_z(z_prime, OmegaM, OmegaA)
+    integral_value, _ = quad(integrand, 0.0, z_obs)            # quad integrates from 0 to z_obs
+    return d_H * integral_value
+
+
+def distance_modulus(z_obs, OmegaM, OmegaA, H0):
+    """
+    Predicted distance modulus at redshift z_obs.
+      d_C = d_H * integral_0^z dz'/E(z')     [comoving distance]
+      d_L = (1+z) * d_C                       [luminosity distance, flat space]
+      mu  = 5 * log10(d_L [Mpc]) + 25         [distance modulus]
+    """
+    d_C = comoving_distance(z_obs, OmegaM, OmegaA, H0)
+    d_L = (1.0 + z_obs) * d_C                 # luminosity distance in Mpc
+    return 5.0 * np.log10(d_L) + 25.0         # +25 converts Mpc to the standard 10 pc baseline
+
+
+#Compute predicted mu at each observed supernova redshift
+mu_predicted_data = np.array([
+    distance_modulus(z_i, best_OmegaM, best_OmegaA, best_H0)
+    for z_i in z_fit
+])
+
+#Chi^2: sum of ((observed - predicted) / uncertainty)^2; chi^2_red ~ 1 means good fit
+residuals       = (mu_fit - mu_predicted_data) / mu_err_fit
+chi2_hubble     = np.sum(residuals**2)
+ndof_hubble     = len(z_fit) - 2
+chi2_red_hubble = chi2_hubble / ndof_hubble
+
+print(f"Hubble diagram chi^2 = {chi2_hubble:.2f},  chi^2_red = {chi2_red_hubble:.3f}")
+
+#Smooth model curve: 300 log-spaced z values so the plotted line looks continuous
+z_smooth  = np.logspace(np.log10(z_fit.min()), np.log10(z_fit.max()), 300)
+mu_smooth = np.array([
+    distance_modulus(z_i, best_OmegaM, best_OmegaA, best_H0)
+    for z_i in z_smooth
+])
+
+# Plot: two panels sharing the same x-axis
+fig2, (ax_hub, ax_res) = plt.subplots(2, 1, figsize=(10, 9), sharex=True, gridspec_kw={"height_ratios": [3, 1]})
+fig2.suptitle("Type Ia Supernova Hubble Diagram", fontsize=14, fontweight='bold')
+
+# Top panel: data points with error bars, and the model curve on top
+ax_hub.errorbar(z_fit, mu_fit, yerr=mu_err_fit, fmt='o', markersize=2.5,color='steelblue', ecolor='lightsteelblue', alpha=0.75, label="Union2.1 SNe Ia")
+ax_hub.plot(z_smooth, mu_smooth, color='crimson', linewidth=2, label=rf"Flat $\Lambda$CDM: $\Omega_M$={best_OmegaM:.3f}, $\Omega_\Lambda$={best_OmegaA:.3f}, $H_0$={best_H0:.1f} km/s/Mpc")
+ax_hub.annotate(rf"$\chi^2$={chi2_hubble:.1f}, $\chi^2_{{red}}$={chi2_red_hubble:.3f}", xy=(0.97, 0.05), xycoords='axes fraction', fontsize=9, ha='right')
+ax_hub.set_ylabel(r"Distance Modulus $\mu$ (mag)")
+ax_hub.legend(fontsize=8)
+ax_hub.grid(True, alpha=0.3)
+
+# Bottom panel: residuals in units of sigma, should scatter around 0
+ax_res.scatter(z_fit, residuals, s=4, color='steelblue', alpha=0.6)
+ax_res.axhline(0,  color='crimson', linestyle='--')   # zero line
+ax_res.axhline(+1, color='gray',    linestyle=':')    # ±1 sigma guides
+ax_res.axhline(-1, color='gray',    linestyle=':')
+ax_res.set_ylabel(r"Residual ($\sigma$)")
+ax_res.set_xlabel(r"Redshift $z$ (log scale)")
+ax_res.set_xscale('log')
+ax_res.set_ylim(-5, 5)
+ax_res.grid(True, alpha=0.3)
+
+plt.tight_layout()
 plt.show()
