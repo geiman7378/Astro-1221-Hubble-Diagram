@@ -116,9 +116,9 @@ fig.suptitle("Best-Fit H(z) vs Redshift (all valid z)", fontsize=13)
 ax1.scatter(z_fit, Hz_array, s = 2, color="navy")
 ax1.annotate(f"H(z=0) = {Hz_at_z0:.2f} km/s/Mpc", xy=(0.05, 0.92),
              xycoords='axes fraction', fontsize=11, color='darkgreen')
-ax1.annotate(f"H0 (fit from SN data) = {best_H0:.2f}", xy=(0.05, 0.86),
+ax1.annotate(r"$H_0$" + f"(fit from SN data) = {best_H0:.2f}", xy=(0.05, 0.86),
              xycoords='axes fraction', fontsize=10, color='darkred')
-ax1.annotate(f"chi^2_red = {reduced_chi2:.3f}", xy=(0.05, 0.75),
+ax1.annotate(r"$\chi^2_{\text{red}}$" + f" = {reduced_chi2:.3f}", xy=(0.05, 0.75),
              xycoords='axes fraction', fontsize=10, color='black')
 ax1.set_ylabel("H(z) (km/s/Mpc)")
 ax1.set_xlabel("Redshift")
