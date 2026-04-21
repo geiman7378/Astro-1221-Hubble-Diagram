@@ -4,6 +4,7 @@ from get_data import load_sn_arrays
 from scipy.optimize import minimize
 from scipy.constants import c
 from scipy.integrate import quad
+C_KM_S = c / 1e3
 
 # --- 1. Load SN Ia data (shared cleaning + err + sig_int in quadrature) ---
 z, mu, mu_err = load_sn_arrays()
@@ -20,8 +21,6 @@ def adv_h_calc(z_values, OmegaM, OmegaA, H0):
     inside = (OmegaM * (1 + z_values) ** 3) + (OmegaK * (1 + z_values) ** 2) + OmegaA
     Hz = H0 * np.sqrt(inside)
     return Hz
-
-C_KM_S = c / 1e3
 
 def mu_model(z_values, OmegaM, OmegaA, H0):
     """Distance-modulus prediction from (OmegaM, OmegaA, H0)."""
@@ -171,7 +170,7 @@ chi2_hubble     = np.sum(residuals**2)
 ndof_hubble     = len(z_fit) - 2
 chi2_red_hubble = chi2_hubble / ndof_hubble
 
-print(f"Hubble diagram chi^2 = {chi2_hubble:.2f},  chi^2_red = {chi2_red_hubble:.3f}")
+print(f"Hubble diagram chi^2_red = {chi2_red_hubble:.3f}")
 
 #Smooth model curve: 300 log-spaced z values so the plotted line looks continuous
 z_smooth  = np.logspace(np.log10(z_fit.min()), np.log10(z_fit.max()), 300)
@@ -180,6 +179,22 @@ mu_smooth = np.array([
     for z_i in z_smooth
 ])
 
+# Simple low-redshift approximation:
+low_z_limit = 0.1
+low_z_mask = z_fit < low_z_limit
+z_low = z_fit[low_z_mask]
+mu_low = mu_fit[low_z_mask]
+mu_err_low = mu_err_fit[low_z_mask]
+
+if len(z_low) > 0:
+    log_z_low = 5 * np.log10(z_low)
+    weights_low = 1.0 / (mu_err_low ** 2)
+    C_low = np.sum(weights_low * (mu_low - log_z_low)) / np.sum(weights_low)
+    mu_simple_smooth = 5 * np.log10(z_smooth) + C_low
+else:
+    C_low = np.nan
+    mu_simple_smooth = np.full_like(z_smooth, np.nan)
+
 # Plot: two panels sharing the same x-axis
 fig2, (ax_hub, ax_res) = plt.subplots(2, 1, figsize=(10, 9), sharex=True, gridspec_kw={"height_ratios": [3, 1]})
 fig2.suptitle("Type Ia Supernova Hubble Diagram", fontsize=14, fontweight='bold')
@@ -187,7 +202,8 @@ fig2.suptitle("Type Ia Supernova Hubble Diagram", fontsize=14, fontweight='bold'
 # Top panel: data points with error bars, and the model curve on top
 ax_hub.errorbar(z_fit, mu_fit, yerr=mu_err_fit, fmt='o', markersize=2.5,color='steelblue', ecolor='lightsteelblue', alpha=0.75, label="Union2.1 SNe Ia")
 ax_hub.plot(z_smooth, mu_smooth, color='crimson', linewidth=2, label=rf"Flat $\Lambda$CDM: $\Omega_M$={best_OmegaM:.3f}, $\Omega_\Lambda$={best_OmegaA:.3f}, $H_0$={best_H0:.1f} km/s/Mpc")
-ax_hub.annotate(rf"$\chi^2$={chi2_hubble:.1f}, $\chi^2_{{red}}$={chi2_red_hubble:.3f}", xy=(0.97, 0.05), xycoords='axes fraction', fontsize=9, ha='right')
+ax_hub.plot(z_smooth, mu_simple_smooth, color='black', linestyle='--', linewidth=1.8, label=rf"Low-z approx (z<{low_z_limit}): $\mu = 5\log_{{10}}(z) + {C_low:.2f}$")
+ax_hub.annotate(rf"$\chi^2_{{red}}$={chi2_red_hubble:.3f}", xy=(0.97, 0.05), xycoords='axes fraction', fontsize=9, ha='right')
 ax_hub.set_ylabel(r"Distance Modulus $\mu$ (mag)")
 ax_hub.legend(fontsize=8)
 ax_hub.grid(True, alpha=0.3)
