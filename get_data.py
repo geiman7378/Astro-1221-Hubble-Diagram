@@ -14,7 +14,7 @@ class SNData:
         x1        = [] # Stretch
         color     = [] # Color (how red or blue it is)
         mu        = [] # Distance modulus
-        sig_int   = [] # Intrinsic dispersion
+        p_low_mass_host   = [] # Probability that the supernova was hosted by a low-mass galaxy
         m_b_err   = [] # Error in magnitude in the B band
         x1_err    = [] # Error in stretch
         color_err = [] # Error in color
@@ -55,11 +55,11 @@ class SNData:
                         err_list.append(error)
 
                 raw_sig = cols[6].strip()
-                sig_int.append(np.nan if raw_sig == r'\nodata' else float(raw_sig))
+                p_low_mass_host.append(np.nan if raw_sig == r'\nodata' else float(raw_sig))
 
         # Store everything as a numpy structured array so you can do data['m_b'] etc.
         self.array = np.array(
-            list(zip(SN, z, m_b, x1, color, mu, sig_int,
+            list(zip(SN, z, m_b, x1, color, mu, p_low_mass_host,
                      m_b_err, x1_err, color_err, mu_err)),
             dtype=[
                 ('SN','U20'),
@@ -68,7 +68,7 @@ class SNData:
                 ('x1','f8'),
                 ('color','f8'),
                 ('mu','f8'),
-                ('sig_int','f8'),
+                ('p_low_mass_host','f8'),
                 ('m_b_err','f8'),
                 ('x1_err','f8'),
                 ('color_err','f8'),
@@ -83,14 +83,12 @@ class SNData:
 def load_sn_arrays(tex_file=TEX_FILE):
     """
     Return SN Ia arrays ready for fitting: finite z, mu, errors; z > 0.
-    Uncertainty is sqrt(mu_err^2 + sig_int^2) where intrinsic scatter is
-    available (Union2.1 provides both).
+    Uncertainty is mu_err
     """
     sn = SNData(tex_file)
     z = sn["z"]
     mu = sn["mu"]
     mu_err = sn["mu_err"]
-    sig_int = sn["sig_int"]
     valid = (
         np.isfinite(z)
         & np.isfinite(mu)
@@ -101,10 +99,7 @@ def load_sn_arrays(tex_file=TEX_FILE):
     z = z[valid]
     mu = mu[valid]
     mu_err = mu_err[valid]
-    sig_int = sig_int[valid]
-    extra = np.where(np.isfinite(sig_int), sig_int, 0.0)
-    sigma = np.sqrt(mu_err**2 + extra**2)
-    return z, mu, sigma
+    return z, mu, mu_err
 
 
 data = SNData(TEX_FILE)
