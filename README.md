@@ -2,6 +2,17 @@
 
 This project uses Union2.1 Type Ia supernova data to build a Hubble diagram and estimate cosmological parameters.
 
+## Project Goals 
+
+**Project 7: Type Ia Supernova Hubble Diagram (2011 Nobel Prize; discovery 1998)**
+
+This project creates a fit for the relationship between supernova distance and redshift to measure the universe's expansion.
+
+-  Load date from 20+ supernovae with measured mu and z
+-  Fit for Hubble Constant
+-  Creating a Hubble diagram
+-  Plotting
+
 ## Files
 
 - `get_data.py`: parses `SCPUnion2.1_AllSNe.tex` and returns cleaned arrays `(z, mu, mu_err)`.
@@ -58,6 +69,17 @@ These are practical checks, not strict grading cutoffs.
   - verify valid rows are still present and `mu_err > 0`
 - Plot window not showing:
   - run in a normal local terminal; `Plot_Data.py` still writes `hubble_fit.png`
+ 
+## AI Usage
+
+**AI Tools Used**
+
+- Cursor
+- Claude
+
+**What AI Helped with**
+
+
 
 ## Notes
 
