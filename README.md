@@ -89,3 +89,7 @@ These are practical checks, not strict grading cutoffs.
 - `\nodata` entries are converted to `NaN` during parsing.
 - Both analyses use `mu_err` as the observational uncertainty.
 
+## What deviations reveal about dark energy
+
+To put it simply, the deviations reveal that the universe is in fact expanding, thus "dark energy" does exist. 
+Source: https://science.nasa.gov/dark-energy/
