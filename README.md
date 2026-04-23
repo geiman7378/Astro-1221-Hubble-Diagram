@@ -13,6 +13,11 @@ This project creates a fit for the relationship between supernova distance and r
 -  Creating a Hubble diagram
 -  Plotting
 
+## What deviations reveal about dark energy
+
+To put it simply, the deviations reveal that the universe is in fact expanding, thus "dark energy" does exist. 
+Source: https://science.nasa.gov/dark-energy/
+
 ## Files
 
 - `get_data.py`: parses `SCPUnion2.1_AllSNe.tex` and returns cleaned arrays `(z, mu, mu_err)`.
@@ -88,8 +93,3 @@ These are practical checks, not strict grading cutoffs.
 
 - `\nodata` entries are converted to `NaN` during parsing.
 - Both analyses use `mu_err` as the observational uncertainty.
-
-## What deviations reveal about dark energy
-
-To put it simply, the deviations reveal that the universe is in fact expanding, thus "dark energy" does exist. 
-Source: https://science.nasa.gov/dark-energy/
