@@ -79,7 +79,10 @@ These are practical checks, not strict grading cutoffs.
 
 **What AI Helped with**
 
-
+- Help create plotting code
+- Debugging
+- Identify mathematical errors
+- Drafting Documentation 
 
 ## Notes
 
